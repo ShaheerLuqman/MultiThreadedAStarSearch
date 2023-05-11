@@ -47,46 +47,29 @@ bool visited[ROW][COL]{false};
 cell cellDetails[ROW][COL];
 vector<vector<int>> newGrid;
 
+// prototypes start
+void North(set<pPair> &openList, bool &foundDest, int i, int j);
+void NorthEast(set<pPair> &openList, bool &foundDest, int i, int j);
+void East(set<pPair> &openList, bool &foundDest, int i, int j);
+void SouthEast(set<pPair> &openList, bool &foundDest, int i, int j);
+void South(set<pPair> &openList, bool &foundDest, int i, int j);
+void SouthWest(set<pPair> &openList, bool &foundDest, int i, int j);
+void West(set<pPair> &openList, bool &foundDest, int i, int j);
+void NorthWest(set<pPair> &openList, bool &foundDest, int i, int j);
+void importGrid();
+void printGrid();
+void aStarSearch();
+void InitializeCellDetails();
+void tracePath();
+// prototypes end
+
 bool isValid(int row, int col) { return (row >= 0) && (row < ROW) && (col >= 0) && (col < COL); }
 bool isUnBlocked(int row, int col) { return grid[row][col] == 1; }
 bool isDestination(int row, int col, Pair dest) { return row == dest.first && col == dest.second; }
-// Euclidean Distance for hueristic Function
-double calculateHValue(int row, int col, Pair dest) { return ((double)sqrt(pow((row - dest.first), 2) + pow((col - dest.second), 2))); }
+double calculateHValue(int row, int col, Pair dest) { return ((double)sqrt(pow((row - dest.first), 2) + pow((col - dest.second), 2))); } // Euclidean Distance for hueristic Function
 
-// A Utility Function to trace the path from the source to destination
-void tracePath(Pair dest)
-{
-    printf("\nThe Path is ");
-    int row = dest.first;
-    int col = dest.second;
-
-    stack<Pair> Path;
-
-    while (!(cellDetails[row][col].parent_i == row && cellDetails[row][col].parent_j == col))
-    {
-        Path.push(make_pair(row, col));
-        int temp_row = cellDetails[row][col].parent_i;
-        int temp_col = cellDetails[row][col].parent_j;
-        row = temp_row;
-        col = temp_col;
-    }
-    int count = 0;
-    Path.push(make_pair(row, col));
-    while (!Path.empty())
-    {
-        Pair p = Path.top();
-        Path.pop();
-        cout << "-> (" << p.first << "," << p.second << ") ";
-        count++;
-    }
-    cout << endl
-         << "The Length of Path is: " << count - 1 << endl;
-
-    return;
-}
-
-// pthread code to initialize cellDetails grid
-void *initCellDetails(void *arg)
+// pthread functions start
+void *pThreadInitializeCellDetails(void *arg)
 {
     int id = *((int *)arg);
     int start = id * ROW / 4;
@@ -106,8 +89,6 @@ void *initCellDetails(void *arg)
 
     pthread_exit(NULL);
 }
-
-// pthread code to import grid csv
 void *pThreadImportGrid(void *arg)
 {
     string filename = "grid.csv";
@@ -134,19 +115,30 @@ void *pThreadImportGrid(void *arg)
 
     pthread_exit(NULL);
 }
+// pthread functions end
 
-// prototypes
-void North(set<pPair> &openList, bool &foundDest, int i, int j);
-void NorthEast(set<pPair> &openList, bool &foundDest, int i, int j);
-void East(set<pPair> &openList, bool &foundDest, int i, int j);
-void SouthEast(set<pPair> &openList, bool &foundDest, int i, int j);
-void South(set<pPair> &openList, bool &foundDest, int i, int j);
-void SouthWest(set<pPair> &openList, bool &foundDest, int i, int j);
-void West(set<pPair> &openList, bool &foundDest, int i, int j);
-void NorthWest(set<pPair> &openList, bool &foundDest, int i, int j);
-void importGrid();
-void printGrid();
+int main()
+{
+    auto start = chrono::high_resolution_clock::now();
 
+    // importGrid();
+    InitializeCellDetails();
+    // printGrid();
+
+    src = make_pair(11, 1);
+    dest = make_pair(5, 0);
+    aStarSearch();
+
+    { // Calculating End Time
+        auto end = chrono::high_resolution_clock::now();
+        auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+        cout << "Execution time: " << duration.count() << " microseconds" << endl;
+    }
+
+    return 0;
+}
+
+// Functions Implementation
 void aStarSearch()
 {
     if (isValid(src.first, src.second) == false)
@@ -261,35 +253,48 @@ void aStarSearch()
 
     return;
 }
-
-int main()
+void InitializeCellDetails()
 {
-    auto start = chrono::high_resolution_clock::now();
-    // importGrid();
-
     pthread_t threads[4];
     int thread_ids[4];
     for (int i = 0; i < 4; i++)
     {
         thread_ids[i] = i;
-        pthread_create(&threads[i], NULL, initCellDetails, (void *)&thread_ids[i]);
+        pthread_create(&threads[i], NULL, pThreadInitializeCellDetails, (void *)&thread_ids[i]);
     }
     for (int i = 0; i < 4; i++)
         pthread_join(threads[i], NULL);
-
-    // printGrid();
-
-    src = make_pair(11, 1);
-    dest = make_pair(5, 0);
-    aStarSearch();
-
-    auto end = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
-    cout << "Execution time: " << duration.count() << " microseconds" << endl;
-
-    return 0;
 }
+void tracePath(Pair dest)
+{
+    printf("\nThe Path is ");
+    int row = dest.first;
+    int col = dest.second;
 
+    stack<Pair> Path;
+
+    while (!(cellDetails[row][col].parent_i == row && cellDetails[row][col].parent_j == col))
+    {
+        Path.push(make_pair(row, col));
+        int temp_row = cellDetails[row][col].parent_i;
+        int temp_col = cellDetails[row][col].parent_j;
+        row = temp_row;
+        col = temp_col;
+    }
+    int count = 0;
+    Path.push(make_pair(row, col));
+    while (!Path.empty())
+    {
+        Pair p = Path.top();
+        Path.pop();
+        cout << "-> (" << p.first << "," << p.second << ") ";
+        count++;
+    }
+    cout << endl
+         << "The Length of Path is: " << count - 1 << endl;
+
+    return;
+}
 void importGrid()
 {
     // Create a mutex for accessing newGrid
