@@ -209,8 +209,8 @@ void aStarSearch()
         pool.enqueue([&i, &j]
                      { processDirection(i, j, "SE"); });
 
-        if (i == src.first && j == src.second)
-            usleep(10);
+        // if (i == src.first)
+        usleep(1);
 
         if (foundDest)
             return;
