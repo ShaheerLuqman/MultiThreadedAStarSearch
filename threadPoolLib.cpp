@@ -5,6 +5,8 @@
 #include <sstream>
 #include <pthread.h>
 #include <chrono>
+#include "ThreadPool.h"
+
 using namespace std;
 
 typedef pair<int, int> Pair;
@@ -136,7 +138,8 @@ int main()
     return 0;
 }
 
-// Functions Implementation
+pthread_mutex_t DestinationReached;
+
 void aStarSearch()
 {
     { // conditions to check before starting
@@ -176,47 +179,43 @@ void aStarSearch()
     cellDetails[i][j].parent_j = j;
     openList.insert(make_pair(0.0, make_pair(i, j))); // Put the starting cell on the open list and set its 'f' as 0
 
+    ThreadPool pool(4);
+    pthread_mutex_init(&DestinationReached, nullptr);
+    // Functions Implementation
     while (!openList.empty())
     {
         pPair p = *openList.begin();
         openList.erase(openList.begin()); // Remove this vertex from the open list
 
+        // Add this vertex to the visited list
         i = p.second.first;
         j = p.second.second;
         visited[i][j] = true;
 
-        processDirection(i, j, "N");
-        if (foundDest)
-            return;
+        pool.enqueue([&i, &j]
+                     { processDirection(i, j, "N"); });
+        pool.enqueue([&i, &j]
+                     { processDirection(i, j, "S"); });
+        pool.enqueue([&i, &j]
+                     { processDirection(i, j, "E"); });
+        pool.enqueue([&i, &j]
+                     { processDirection(i, j, "W"); });
+        pool.enqueue([&i, &j]
+                     { processDirection(i, j, "NW"); });
+        pool.enqueue([&i, &j]
+                     { processDirection(i, j, "NE"); });
+        pool.enqueue([&i, &j]
+                     { processDirection(i, j, "SW"); });
+        pool.enqueue([&i, &j]
+                     { processDirection(i, j, "SE"); });
 
-        processDirection(i, j, "S");
-        if (foundDest)
-            return;
+        if (i == src.first && j == src.second)
+            usleep(10);
 
-        processDirection(i, j, "E");
-        if (foundDest)
-            return;
-
-        processDirection(i, j, "W");
-        if (foundDest)
-            return;
-
-        processDirection(i, j, "NE");
-        if (foundDest)
-            return;
-
-        processDirection(i, j, "NW");
-        if (foundDest)
-            return;
-
-        processDirection(i, j, "SE");
-        if (foundDest)
-            return;
-
-        processDirection(i, j, "SW");
         if (foundDest)
             return;
     }
+    pthread_mutex_destroy(&DestinationReached);
 
     // When the destination cell is not found and the open
     // list is empty, then we conclude that we failed to
@@ -364,6 +363,7 @@ void processDirection(int i, int j, const string &direction)
 
     if (isValid(row, col) == true)
     {
+        pthread_mutex_lock(&DestinationReached);
         if (isDestination(row, col, dest) == true)
         {
             foundDest.store(true);
@@ -371,10 +371,12 @@ void processDirection(int i, int j, const string &direction)
             cellDetails[row][col].parent_j = j;
             printf("The destination cell is found\n");
             tracePath();
+            pthread_mutex_unlock(&DestinationReached);
             return;
         }
         else if (visited[row][col] == false && isUnBlocked(row, col) == true)
         {
+            pthread_mutex_unlock(&DestinationReached);
             int gNew;
             if (direction == "NE" || direction == "NW" || direction == "SW" || direction == "SE")
             {
@@ -396,5 +398,6 @@ void processDirection(int i, int j, const string &direction)
                 cellDetails[row][col].parent_j = j;
             }
         }
+        pthread_mutex_unlock(&DestinationReached);
     }
 }
