@@ -46,16 +46,18 @@ public:
 bool visited[ROW][COL]{false};
 cell cellDetails[ROW][COL];
 vector<vector<int>> newGrid;
+set<pair<double, pair<int, int>>> openList; // Create an open list having information as <f, <i, j>>
+atomic<bool> foundDest(false);              // Atomic boolean flag to signal when the destination is found, initially cleared
 
 // prototypes start
-void North(set<pPair> &openList, bool &foundDest, int i, int j);
-void NorthEast(set<pPair> &openList, bool &foundDest, int i, int j);
-void East(set<pPair> &openList, bool &foundDest, int i, int j);
-void SouthEast(set<pPair> &openList, bool &foundDest, int i, int j);
-void South(set<pPair> &openList, bool &foundDest, int i, int j);
-void SouthWest(set<pPair> &openList, bool &foundDest, int i, int j);
-void West(set<pPair> &openList, bool &foundDest, int i, int j);
-void NorthWest(set<pPair> &openList, bool &foundDest, int i, int j);
+void North(int i, int j);
+void NorthEast(int i, int j);
+void East(int i, int j);
+void SouthEast(int i, int j);
+void South(int i, int j);
+void SouthWest(int i, int j);
+void West(int i, int j);
+void NorthWest(int i, int j);
 void importGrid();
 void printGrid();
 void aStarSearch();
@@ -115,8 +117,50 @@ void *pThreadImportGrid(void *arg)
 
     pthread_exit(NULL);
 }
+struct ThreadArgsNeighbours
+{
+    int i;
+    int j;
+};
 // pthread functions end
+/*
+void *NorthThread(void *arg)
+{
+    ThreadArgsNeighbours *args = static_cast<ThreadArgsNeighbours *>(arg);
+    int i = args->i, j = args->j;
+    if (isValid(i - 1, j) == true)
+    {
+        if (isDestination(i - 1, j, dest) == true)
+        {
+            cellDetails[i - 1][j].parent_i = i;
+            cellDetails[i - 1][j].parent_j = j;
+            printf("The destination cell is found\n");
+            tracePath();
+            foundDest.store(true);
+            return NULL;
+        }
+        else if (visited[i - 1][j] == false && isUnBlocked(i - 1, j) == true)
+        {
+            int gNew = cellDetails[i][j].g + 1.0;
+            int hNew = calculateHValue(i - 1, j, dest);
+            int fNew = gNew + hNew;
 
+            if (cellDetails[i - 1][j].f == FLT_MAX || cellDetails[i - 1][j].f > fNew)
+            {
+                openList.insert(make_pair(
+                    fNew, make_pair(i - 1, j)));
+
+                cellDetails[i - 1][j].f = fNew;
+                cellDetails[i - 1][j].g = gNew;
+                cellDetails[i - 1][j].h = hNew;
+                cellDetails[i - 1][j].parent_i = i;
+                cellDetails[i - 1][j].parent_j = j;
+            }
+        }
+    }
+    return NULL;
+}
+*/
 int main()
 {
     auto start = chrono::high_resolution_clock::now();
@@ -125,8 +169,6 @@ int main()
     InitializeCellDetails();
     // printGrid();
 
-    src = make_pair(11, 1);
-    dest = make_pair(5, 0);
     aStarSearch();
 
     { // Calculating End Time
@@ -141,34 +183,33 @@ int main()
 // Functions Implementation
 void aStarSearch()
 {
-    if (isValid(src.first, src.second) == false)
-    {
-        cout << "Source is invalid\n";
-        return;
+    { // conditions to check before starting
+        if (isValid(src.first, src.second) == false)
+        {
+            cout << "Source is invalid\n";
+            return;
+        }
+        if (isValid(dest.first, dest.second) == false)
+        {
+            cout << "Destination is invalid\n";
+            return;
+        }
+        if (isUnBlocked(dest.first, dest.second) == false)
+        {
+            cout << "The destination is blocked\n";
+            return;
+        }
+        if (isUnBlocked(src.first, src.second) == false)
+        {
+            cout << "The Source is blocked\n";
+            return;
+        }
+        if (isDestination(src.first, src.second, dest) == true)
+        {
+            cout << "We are already at the destination\n";
+            return;
+        }
     }
-    if (isValid(dest.first, dest.second) == false)
-    {
-        cout << "Destination is invalid\n";
-        return;
-    }
-    if (isUnBlocked(dest.first, dest.second) == false)
-    {
-        cout << "The destination is blocked\n";
-        return;
-    }
-    if (isUnBlocked(src.first, src.second) == false)
-    {
-        cout << "The Source is blocked\n";
-        return;
-    }
-    if (isDestination(src.first, src.second, dest) == true)
-    {
-        cout << "We are already at the destination\n";
-        return;
-    }
-
-    // bool visited[ROW][COL]{false};
-    // memset(visited, false, sizeof(visited)); // To initialize visited by false
 
     // Initialising the parameters of the starting node on the grid
     int i = src.first, j = src.second;
@@ -177,22 +218,14 @@ void aStarSearch()
     cellDetails[i][j].h = 0.0;
     cellDetails[i][j].parent_i = i;
     cellDetails[i][j].parent_j = j;
+    openList.insert(make_pair(0.0, make_pair(i, j))); // Put the starting cell on the open list and set its 'f' as 0
 
-    // Create an open list having information as <f, <i, j>>
-    set<pair<double, pair<int, int>>> openList;
-
-    // Put the starting cell on the open list and set its 'f' as 0
-    openList.insert(make_pair(0.0, make_pair(i, j)));
-
-    // We set this boolean value as false as initially the destination is not reached.
-    bool foundDest = false;
-
+    vector<pthread_t> threads(8);
     while (!openList.empty())
     {
         pPair p = *openList.begin();
 
-        // Remove this vertex from the open list
-        openList.erase(openList.begin());
+        openList.erase(openList.begin()); // Remove this vertex from the open list
 
         // Add this vertex to the visited list
         i = p.second.first;
@@ -200,45 +233,44 @@ void aStarSearch()
         visited[i][j] = true;
 
         double gNew, hNew, fNew;
-        string direction;
 
         // 1st Successor (North)
-        North(openList, foundDest, i, j);
+        North(i, j);
         if (foundDest)
             return;
 
         // 2nd Successor (South)
-        South(openList, foundDest, i, j);
+        South(i, j);
         if (foundDest)
             return;
 
         // 3rd Successor (East)
-        East(openList, foundDest, i, j);
+        East(i, j);
         if (foundDest)
             return;
 
         // 4th Successor (West)
-        West(openList, foundDest, i, j);
+        West(i, j);
         if (foundDest)
             return;
 
         // 5th Successor (North-East)
-        NorthEast(openList, foundDest, i, j);
+        NorthEast(i, j);
         if (foundDest)
             return;
 
         // 6th Successor (North-West)
-        NorthWest(openList, foundDest, i, j);
+        NorthWest(i, j);
         if (foundDest)
             return;
 
         // 7th Successor (South-East)
-        SouthEast(openList, foundDest, i, j);
+        SouthEast(i, j);
         if (foundDest)
             return;
 
         // 8th Successor (South-West)
-        SouthWest(openList, foundDest, i, j);
+        SouthWest(i, j);
         if (foundDest)
             return;
     }
@@ -341,7 +373,7 @@ void printGrid()
     }
     cout << endl;
 }
-void North(set<pPair> &openList, bool &foundDest, int i, int j)
+void North(int i, int j)
 {
     if (isValid(i - 1, j) == true)
     {
@@ -351,7 +383,7 @@ void North(set<pPair> &openList, bool &foundDest, int i, int j)
             cellDetails[i - 1][j].parent_j = j;
             printf("The destination cell is found\n");
             tracePath(dest);
-            foundDest = true;
+            foundDest.store(true);
             return;
         }
         else if (visited[i - 1][j] == false && isUnBlocked(i - 1, j) == true)
@@ -374,7 +406,7 @@ void North(set<pPair> &openList, bool &foundDest, int i, int j)
         }
     }
 }
-void NorthEast(set<pPair> &openList, bool &foundDest, int i, int j)
+void NorthEast(int i, int j)
 {
     if (isValid(i - 1, j + 1) == true)
     {
@@ -386,7 +418,7 @@ void NorthEast(set<pPair> &openList, bool &foundDest, int i, int j)
             cellDetails[i - 1][j + 1].parent_j = j;
             printf("The destination cell is found\n");
             tracePath(dest);
-            foundDest = true;
+            foundDest.store(true);
             return;
         }
 
@@ -410,7 +442,7 @@ void NorthEast(set<pPair> &openList, bool &foundDest, int i, int j)
         }
     }
 }
-void East(set<pPair> &openList, bool &foundDest, int i, int j)
+void East(int i, int j)
 {
     if (isValid(i, j + 1) == true)
     {
@@ -422,7 +454,7 @@ void East(set<pPair> &openList, bool &foundDest, int i, int j)
             cellDetails[i][j + 1].parent_j = j;
             printf("The destination cell is found\n");
             tracePath(dest);
-            foundDest = true;
+            foundDest.store(true);
             return;
         }
 
@@ -446,7 +478,7 @@ void East(set<pPair> &openList, bool &foundDest, int i, int j)
         }
     }
 }
-void SouthEast(set<pPair> &openList, bool &foundDest, int i, int j)
+void SouthEast(int i, int j)
 {
     if (isValid(i + 1, j + 1) == true)
     {
@@ -458,7 +490,7 @@ void SouthEast(set<pPair> &openList, bool &foundDest, int i, int j)
             cellDetails[i + 1][j + 1].parent_j = j;
             printf("The destination cell is found\n");
             tracePath(dest);
-            foundDest = true;
+            foundDest.store(true);
             return;
         }
 
@@ -482,7 +514,7 @@ void SouthEast(set<pPair> &openList, bool &foundDest, int i, int j)
         }
     }
 }
-void South(set<pPair> &openList, bool &foundDest, int i, int j)
+void South(int i, int j)
 {
     if (isValid(i + 1, j) == true)
     {
@@ -494,7 +526,7 @@ void South(set<pPair> &openList, bool &foundDest, int i, int j)
             cellDetails[i + 1][j].parent_j = j;
             printf("The destination cell is found\n");
             tracePath(dest);
-            foundDest = true;
+            foundDest.store(true);
             return;
         }
 
@@ -518,7 +550,7 @@ void South(set<pPair> &openList, bool &foundDest, int i, int j)
         }
     }
 }
-void SouthWest(set<pPair> &openList, bool &foundDest, int i, int j)
+void SouthWest(int i, int j)
 {
     if (isValid(i + 1, j - 1) == true)
     {
@@ -530,7 +562,7 @@ void SouthWest(set<pPair> &openList, bool &foundDest, int i, int j)
             cellDetails[i + 1][j - 1].parent_j = j;
             printf("The destination cell is found\n");
             tracePath(dest);
-            foundDest = true;
+            foundDest.store(true);
             return;
         }
 
@@ -555,7 +587,7 @@ void SouthWest(set<pPair> &openList, bool &foundDest, int i, int j)
         }
     }
 }
-void West(set<pPair> &openList, bool &foundDest, int i, int j)
+void West(int i, int j)
 {
     if (isValid(i, j - 1) == true)
     {
@@ -567,7 +599,7 @@ void West(set<pPair> &openList, bool &foundDest, int i, int j)
             cellDetails[i][j - 1].parent_j = j;
             printf("The destination cell is found\n");
             tracePath(dest);
-            foundDest = true;
+            foundDest.store(true);
             return;
         }
 
@@ -591,7 +623,7 @@ void West(set<pPair> &openList, bool &foundDest, int i, int j)
         }
     }
 }
-void NorthWest(set<pPair> &openList, bool &foundDest, int i, int j)
+void NorthWest(int i, int j)
 {
     if (isValid(i - 1, j - 1) == true)
     {
@@ -603,7 +635,7 @@ void NorthWest(set<pPair> &openList, bool &foundDest, int i, int j)
             cellDetails[i - 1][j - 1].parent_j = j;
             printf("The destination cell is found\n");
             tracePath(dest);
-            foundDest = true;
+            foundDest.store(true);
             return;
         }
 
