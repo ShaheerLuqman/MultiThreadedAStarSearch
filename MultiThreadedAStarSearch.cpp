@@ -210,7 +210,7 @@ void aStarSearch()
                      { processDirection(i, j, "SE"); });
 
         // if (i == src.first)
-        usleep(1);
+        usleep(10);
 
         if (foundDest)
             return;
@@ -239,6 +239,45 @@ void InitializeCellDetails()
     for (int i = 0; i < 4; i++)
         pthread_join(threads[i], NULL);
 }
+void printGrid(stack<Pair> Path)
+{
+    cout << endl
+         << "  ";
+    for (int i = 0; i < COL; i++)
+        cout << setw(2) << left << i;
+
+    cout << endl;
+    for (int i = 0; i < ROW; i++)
+    {
+        cout << setw(2) << left << i;
+        for (int j = 0; j < COL; j++)
+        {
+            bool isPath = false;
+            stack<Pair> temp = Path;
+            while (!temp.empty())
+            {
+                Pair p = temp.top();
+                temp.pop();
+                if (p.first == i && p.second == j)
+                {
+                    isPath = true;
+                    break;
+                }
+            }
+
+            if (isPath)
+                cout << "\033[1;32m"
+                     << "██"
+                     << "\033[0m"; // Green
+            else if (grid[i][j] == 1)
+                cout << "  ";
+            else
+                cout << "██";
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
 void tracePath()
 {
     printf("\nThe Path is ");
@@ -257,6 +296,9 @@ void tracePath()
     }
     int count = 0;
     Path.push(make_pair(row, col));
+
+    printGrid(Path); // Print grid with path highlighted in green
+
     while (!Path.empty())
     {
         Pair p = Path.top();
@@ -265,7 +307,7 @@ void tracePath()
         count++;
     }
     cout << endl
-         << "The Length of Path is: " << count - 1 << endl;
+         << "The Length of Path is: " << count << endl;
 
     return;
 }
