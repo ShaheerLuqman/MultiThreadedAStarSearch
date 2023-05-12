@@ -1,82 +1,104 @@
-// https://www.tutorialspoint.com/shortest-path-in-binary-matrix-in-cplusplus
-
 #include <bits/stdc++.h>
 using namespace std;
+
 int d[8][2] = {{1, 1}, {1, -1}, {-1, 1}, {1, 0}, {0, 1}, {-1, -1}, {0, -1}, {-1, 0}};
-struct point
+
+int shortestPathBinaryMatrix(vector<vector<int>> &grid, pair<int, int> src, pair<int, int> dest)
 {
-    int x, y, c;
-    point(int a, int b, int z)
+    int n = grid.size();
+    vector<vector<int>> parent(n, vector<int>(n, -1));
+    vector<vector<int>> distance(n, vector<int>(n, INT_MAX));
+    priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<>> pq;
+    if (!grid[src.first][src.second])
     {
-        x = a;
-        y = b;
-        c = z;
+        pq.push({1, {src.first, src.second}});
+        distance[src.first][src.second] = 1;
     }
-};
-class Solution
-{
-public:
-    int shortestPathBinaryMatrix(vector<vector<int>> &grid)
+    while (!pq.empty())
     {
-        queue<point> q;
-        int n = grid.size();
-        if (!grid[0][0])
+        pair<int, pair<int, int>> curr = pq.top();
+        pq.pop();
+        int x = curr.second.first;
+        int y = curr.second.second;
+        int c = curr.first;
+        if (x == dest.first && y == dest.second)
         {
-            q.push(point(0, 0, 1));
-            grid[0][0] = 1;
+            break;
         }
-        while (!q.empty())
+        if (c > distance[x][y])
         {
-            point curr = q.front();
-            q.pop();
-            int x = curr.x;
-            int y = curr.y;
-            int c = curr.c;
-            if (x == n - 1 && y == n - 1)
-                return c;
-            c++;
-            for (int i = 0; i < 8; i++)
+            continue;
+        }
+        for (int i = 0; i < 8; i++)
+        {
+            int X = x + d[i][0];
+            int Y = y + d[i][1];
+            if (X >= 0 && X < n && Y >= 0 && Y < n && !grid[X][Y])
             {
-                int X = x + d[i][0];
-                int Y = y + d[i][1];
-                if (X >= 0 && X < n && Y >= 0 && Y < n &&
-                    !grid[X][Y])
+                int new_distance = c + 1;
+                if (new_distance < distance[X][Y])
                 {
-                    grid[X][Y] = 1;
-                    q.push(point(X, Y, c));
+                    distance[X][Y] = new_distance;
+                    parent[X][Y] = x * n + y;
+                    pq.push({new_distance, {X, Y}});
                 }
             }
         }
+    }
+    if (parent[dest.first][dest.second] == -1)
+    {
         return -1;
     }
-};
+    vector<int> path;
+    int curr = dest.first * n + dest.second;
+    while (curr != -1)
+    {
+        int x = curr / n;
+        int y = curr % n;
+        path.push_back(curr);
+        curr = parent[x][y];
+    }
+    reverse(path.begin(), path.end());
+    for (int p : path)
+    {
+        int x = p / n;
+        int y = p % n;
+        cout << "(" << x << "," << y << ") ";
+    }
+    cout << endl;
+    return distance[dest.first][dest.second];
+}
 
 int main()
 {
     auto start = chrono::high_resolution_clock::now();
-    vector<vector<int>> grid = {{0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0},
-                                {0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1},
-                                {0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1},
-                                {1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0},
-                                {0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1},
-                                {1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0},
-                                {0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-                                {1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1},
-                                {0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1},
-                                {1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0},
-                                {0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1},
-                                {0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1},
-                                {1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1},
-                                {0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1},
-                                {1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1},
-                                {0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0},
-                                {0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1},
-                                {1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1},
-                                {1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1},
-                                {0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0}};
+    vector<vector<int>> grid =
+        {
+            {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1},
+            {1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0},
+            {0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0},
+            {0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1},
+            {1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0},
+            {0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1},
+            {1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1},
+            {0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0},
+            {1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0},
+            {0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1},
+            {1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0},
+            {1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0},
+            {0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0},
+            {1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0},
+            {0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0},
+            {1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1},
+            {1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0},
+            {0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0},
+            {0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0},
+            {1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1}};
 
-    Solution ob;
-    cout << (ob.shortestPathBinaryMatrix(grid)) << endl;
+    pair<int, int> src = make_pair(11, 1);
+    pair<int, int> dest = make_pair(5, 0);
+    cout << shortestPathBinaryMatrix(grid, src, dest) - 1
+         << endl;
 
     auto end = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::microseconds>(end - start);

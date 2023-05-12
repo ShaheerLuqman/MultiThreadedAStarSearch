@@ -1,7 +1,7 @@
 #!/bin/bash
 
-g++ main.cpp -o test1 > /dev/null
-g++ threadPoolLib.cpp -o test2 > /dev/null
+g++ SingleThreadedAStarSearch.cpp -o test1 > /dev/null
+g++ bfs.cpp -o test2 > /dev/null
 
 iteration=10
 
