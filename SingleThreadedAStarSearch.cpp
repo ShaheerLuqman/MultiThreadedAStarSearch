@@ -11,8 +11,8 @@ typedef pair<int, int> Pair;
 typedef pair<double, Pair> pPair;
 typedef vector<vector<int>> vvi;
 
-#define ROW 20
-#define COL 20
+#define ROW 50
+#define COL 50
 
 vvi grid = {{1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0},
             {0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1},
@@ -34,8 +34,10 @@ vvi grid = {{1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0},
             {1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1},
             {1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1},
             {0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0}};
-Pair src = make_pair(11, 1);
-Pair dest = make_pair(5, 0);
+// Pair src = make_pair(11, 1);
+// Pair dest = make_pair(5, 0);
+Pair src = make_pair(0, 1);
+Pair dest = make_pair(45, 49);
 class cell
 {
 public:
@@ -121,7 +123,7 @@ int main()
 {
     auto start = chrono::high_resolution_clock::now();
 
-    // importGrid();
+    importGrid();
     InitializeCellDetails();
     // printGrid();
 
@@ -165,6 +167,8 @@ void aStarSearch()
             cout << "We are already at the destination\n";
             return;
         }
+        if (ROW >= 30)
+            usleep(40 * ROW);
     }
 
     // Initialising the parameters of the starting node on the grid
@@ -242,6 +246,10 @@ void InitializeCellDetails()
 }
 void printGrid(stack<Pair> Path)
 {
+    {
+        if (ROW >= 30)
+            usleep(100*ROW);
+    }
     cout << endl
          << "  ";
     for (int i = 0; i < COL; i++)
@@ -270,6 +278,10 @@ void printGrid(stack<Pair> Path)
                 cout << "\033[1;32m"
                      << "██"
                      << "\033[0m"; // Green
+            else if (cellDetails[i][j].f != FLT_MAX)
+                cout << "\033[1;34m"
+                     << "██"
+                     << "\033[0m"; // Blue
             else if (grid[i][j] == 1)
                 cout << "  ";
             else
@@ -313,6 +325,31 @@ void tracePath()
     return;
 }
 void importGrid()
+{
+    string filename = "grid.csv"; // name of the input file
+    // vector<vector<int>> grid;         // a vector of vectors to store the matrix
+    grid.clear();
+    ifstream file(filename); // open the file for reading
+    if (file.is_open())
+    {
+        string line;
+        while (getline(file, line))
+        {                    // read each line of the file
+            vector<int> row; // create a vector to store the row
+            stringstream ss(line);
+            string value;
+            while (getline(ss, value, ','))
+            {
+                // read each comma-separated value
+                row.push_back(stoi(value)); // convert the string to an integer and add it to the row vector
+            }
+            grid.push_back(row); // add the row vector to the matrix vector
+        }
+        file.close(); // close the file
+    }
+    return;
+}
+void importGridThreaded()
 {
     // Create a mutex for accessing newGrid
     pthread_mutex_t myMutex = PTHREAD_MUTEX_INITIALIZER;

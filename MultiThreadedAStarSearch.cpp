@@ -7,37 +7,62 @@
 #include <chrono>
 #include "ThreadPool.h"
 
+#define ROW 50
+#define COL 50
+
 using namespace std;
 
 typedef pair<int, int> Pair;
 typedef pair<double, Pair> pPair;
 typedef vector<vector<int>> vvi;
 
-#define ROW 20
-#define COL 20
-
-vvi grid = {{1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0},
-            {0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1},
-            {1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1},
-            {1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0},
-            {0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1},
-            {1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0},
-            {0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+// vvi grid = {
+//     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+//     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+//     {1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1},
+//     {1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+//     {1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1},
+//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1}};
+// Pair src = make_pair(0, 0);
+// Pair dest = make_pair(19, 19);
+vvi grid = {{1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0},
+            {1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1},
+            {1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1},
+            {1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1},
+            {0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1},
+            {1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0},
+            {0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0},
             {1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1},
             {0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1},
-            {1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0},
+            {0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0},
             {0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1},
             {0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1},
-            {1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1},
-            {0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1},
-            {1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1},
-            {0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0},
+            {0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1},
+            {1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1},
+            {1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1},
+            {1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0},
             {0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1},
             {1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1},
-            {1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1},
-            {0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0}};
-Pair src = make_pair(11, 1);
-Pair dest = make_pair(5, 0);
+            {1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1},
+            {0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0}};
+// Pair src = make_pair(11, 1);
+// Pair dest = make_pair(5, 0);
+Pair src = make_pair(0, 1);
+Pair dest = make_pair(45, 49);
 class cell
 {
 public:
@@ -112,18 +137,13 @@ void *pThreadImportGrid(void *arg)
 
     pthread_exit(NULL);
 }
-struct ThreadArgsNeighbours
-{
-    int i;
-    int j;
-};
 // pthread functions end
 
 int main()
 {
     auto start = chrono::high_resolution_clock::now();
 
-    // importGrid();
+    importGrid();
     InitializeCellDetails();
     // printGrid();
 
@@ -140,7 +160,7 @@ int main()
 
 pthread_mutex_t DestinationReached;
 
-void aStarSearch()
+void AStarSearch()
 {
     { // conditions to check before starting
         if (isValid(src.first, src.second) == false)
@@ -241,6 +261,10 @@ void InitializeCellDetails()
 }
 void printGrid(stack<Pair> Path)
 {
+    {
+        if (ROW <= 30)
+            usleep(1000);
+    }
     cout << endl
          << "  ";
     for (int i = 0; i < COL; i++)
@@ -269,6 +293,10 @@ void printGrid(stack<Pair> Path)
                 cout << "\033[1;32m"
                      << "██"
                      << "\033[0m"; // Green
+            else if (cellDetails[i][j].f != FLT_MAX)
+                cout << "\033[1;34m"
+                     << "██"
+                     << "\033[0m"; // Blue
             else if (grid[i][j] == 1)
                 cout << "  ";
             else
@@ -278,6 +306,7 @@ void printGrid(stack<Pair> Path)
     }
     cout << endl;
 }
+
 void tracePath()
 {
     printf("\nThe Path is ");
@@ -312,6 +341,32 @@ void tracePath()
     return;
 }
 void importGrid()
+{
+    string filename = "grid.csv"; // name of the input file
+    // vector<vector<int>> grid;         // a vector of vectors to store the matrix
+    grid.clear();
+    ifstream file(filename); // open the file for reading
+    if (file.is_open())
+    {
+        string line;
+        while (getline(file, line))
+        {                    // read each line of the file
+            vector<int> row; // create a vector to store the row
+            stringstream ss(line);
+            string value;
+            while (getline(ss, value, ','))
+            {
+                // read each comma-separated value
+                row.push_back(stoi(value)); // convert the string to an integer and add it to the row vector
+            }
+            grid.push_back(row); // add the row vector to the matrix vector
+        }
+        file.close(); // close the file
+    }
+
+    return;
+}
+void importGridThreaded()
 {
     // Create a mutex for accessing newGrid
     pthread_mutex_t myMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -357,7 +412,97 @@ void printGrid()
     }
     cout << endl;
 }
+void aStarSearch()
+{
+    { // conditions to check before starting
+        if (isValid(src.first, src.second) == false)
+        {
+            cout << "Source is invalid\n";
+            return;
+        }
+        if (isValid(dest.first, dest.second) == false)
+        {
+            cout << "Destination is invalid\n";
+            return;
+        }
+        if (isUnBlocked(dest.first, dest.second) == false)
+        {
+            cout << "The destination is blocked\n";
+            return;
+        }
+        if (isUnBlocked(src.first, src.second) == false)
+        {
+            cout << "The Source is blocked\n";
+            return;
+        }
+        if (isDestination(src.first, src.second, dest) == true)
+        {
+            cout << "We are already at the destination\n";
+            return;
+        }
+    }
 
+    // Initialising the parameters of the starting node on the grid
+    int i = src.first, j = src.second;
+    cellDetails[i][j].f = 0.0;
+    cellDetails[i][j].g = 0.0;
+    cellDetails[i][j].h = 0.0;
+    cellDetails[i][j].parent_i = i;
+    cellDetails[i][j].parent_j = j;
+    openList.insert(make_pair(0.0, make_pair(i, j))); // Put the starting cell on the open list and set its 'f' as 0
+
+    while (!openList.empty())
+    {
+        pPair p = *openList.begin();
+        openList.erase(openList.begin()); // Remove this vertex from the open list
+
+        i = p.second.first;
+        j = p.second.second;
+        visited[i][j] = true;
+
+        processDirection(i, j, "N");
+        if (foundDest)
+            return;
+
+        processDirection(i, j, "S");
+        if (foundDest)
+            return;
+
+        processDirection(i, j, "E");
+        if (foundDest)
+            return;
+
+        processDirection(i, j, "W");
+        if (foundDest)
+            return;
+
+        processDirection(i, j, "NE");
+        if (foundDest)
+            return;
+
+        processDirection(i, j, "NW");
+        if (foundDest)
+            return;
+
+        processDirection(i, j, "SE");
+        if (foundDest)
+            return;
+
+        processDirection(i, j, "SW");
+        if (foundDest)
+            return;
+    }
+
+    // When the destination cell is not found and the open
+    // list is empty, then we conclude that we failed to
+    // reach the destination cell. This may happen when the
+    // there is no way to destination cell (due to blockages)
+
+    if (foundDest == false)
+        printf("Failed to find the Destination Cell\n");
+
+    return;
+}
 void processDirection(int i, int j, const string &direction)
 {
     int row = i, col = j;
